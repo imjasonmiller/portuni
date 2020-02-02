@@ -1,0 +1,27 @@
+[package]
+name = "rust-embed-nrf24l01"
+version = "0.1.0"
+authors = ["Jason Miller <contact@jasonmiller.nl>"]
+edition = "2018"
+
+[dependencies]
+m = "0.1.1"
+cortex-m = "0.6.1"
+cortex-m-rt = "0.6.10"
+embedded-hal = "0.2.3"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+postcard  = { version = "0.4" }
+
+[dependencies.embedded-nrf24l01]
+git = "https://github.com/diondokter/embedded-nrf24l01"
+
+[dependencies.f3]
+features = ["rt"]
+version = "0.6.1"
+
+[dependencies.stm32f30x-hal]
+features = ["rt"]
+version = "0.2.0"
+
+[dependencies.panic-itm]
+version = "0.4.0"
