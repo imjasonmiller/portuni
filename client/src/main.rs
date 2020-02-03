@@ -1,3 +1,4 @@
+mod app;
 mod cobs_buffer;
 mod compass;
 mod config;
@@ -11,8 +12,11 @@ use usbreader::Receiver;
 use serde::{Deserialize, Serialize};
 use serialport::{SerialPortSettings, SerialPortType};
 
+use crate::app::App;
+
 use amethyst::{
     config::Config,
+    core::transform::TransformBundle,
     ecs::World,
     prelude::*,
     renderer::{plugins::RenderToWindow, types::DefaultBackend, RenderingBundle},
@@ -29,10 +33,6 @@ pub struct Magnetometer {
 struct AppState {
     pub transceiver_cx: bool,
 }
-
-pub struct App;
-
-impl SimpleState for App {}
 
 fn main() -> amethyst::Result<()> {
     // Debug
@@ -56,8 +56,8 @@ fn main() -> amethyst::Result<()> {
 
     world.insert(app_state);
 
-    let app_data = GameDataBuilder::default().with_bundle(
-        RenderingBundle::<DefaultBackend>::new().with_plugin(
+    let app_data = GameDataBuilder::default()
+        .with_bundle(RenderingBundle::<DefaultBackend>::new().with_plugin(
             RenderToWindow::from_config_path(display_path)?.with_clear([
                 // Linear colorspace
                 f32::powf((30.0 / 255.0 + 0.055) / 1.055, 2.4), // R
@@ -65,8 +65,8 @@ fn main() -> amethyst::Result<()> {
                 f32::powf((30.0 / 255.0 + 0.055) / 1.055, 2.4), // B
                 1.0,                                            // A
             ]),
-        ),
-    )?;
+        ))?
+        .with_bundle(TransformBundle::new())?;
 
     let mut app = Application::new(assets_dir, App, app_data)?;
     app.run();
