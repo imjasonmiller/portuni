@@ -11,7 +11,7 @@ serialport = "3.3.0"
 rusb = "0.5.5"
 serde = { version = "1.0", features = ["derive"] }
 postcard  = { version = "0.4" }
-amethyst = { git = "https://github.com/amethyst/amethyst", rev = "37df46b" }
+amethyst = { git = "https://github.com/amethyst/amethyst", rev = "37df46b", features = ["gltf", "animation"] }
 
 [features]
 default = ["vulkan"]
