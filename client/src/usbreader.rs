@@ -1,9 +1,9 @@
 use rusb::Error::{NotFound, NotSupported};
-use rusb::{Context, Device, DeviceList, UsbContext};
+use rusb::{Context, Device, DeviceList, Hotplug, UsbContext};
 
 struct HotPlugHandler;
 
-impl<T: UsbContext> rusb::Hotplug<T> for HotPlugHandler {
+impl<T: UsbContext> Hotplug<T> for HotPlugHandler {
     fn device_arrived(&mut self, device: Device<T>) {
         println!("connected {:?}", device);
     }
