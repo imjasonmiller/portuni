@@ -121,7 +121,7 @@ fn default_parity() -> serialport::Parity {
 pub struct TransceiverSettings {
     pub vid: u16,
     pub pid: u16,
-    // pub baud_rate: u32,
+
     #[serde(default = "default_baud_rate", with = "shim_baud_rate")]
     pub baud_rate: u32,
 
