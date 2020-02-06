@@ -137,6 +137,7 @@ pub struct TransceiverSettings {
     #[serde(default = "default_parity", with = "ParityDef")]
     pub parity: serialport::Parity,
 
+    // TODO: User can not currently enter a custom time duration
     pub timeout: Duration,
 }
 
