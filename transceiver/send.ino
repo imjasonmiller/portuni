@@ -25,7 +25,7 @@ void setup() {
   radio.setPALevel(RF24_PA_MIN);         // Set the power level to max (0 dB)
   radio.setCRCLength(RF24_CRC_16);       // 16 bit Cyclic Redundancy Check
   radio.enableDynamicPayloads();
-  radio.setAutoAck(false);               // Disable auto acknowledgements
+  radio.setAutoAck(false);               // Disable Auto Acknowledgement
 
   // radio.openWritingPipe(TX_ADDRESS);  // Transmit address
   radio.openReadingPipe(0, RX_ADDRESS);  // Receiver address
@@ -36,9 +36,7 @@ void setup() {
   radio.flush_rx();
 }
 
-uint8_t prev = 0;
-
-// Convert bytes to Big Endian.
+// Pack bytes in Big Endian.
 byte *pack_long_be(byte pack[4], long value) {
   pack[0] = (value >> 24) & 0xFF;
   pack[1] = (value >> 16) & 0xFF;
@@ -57,16 +55,6 @@ void loop() {
     for (int i = 0; i < sizeof(rx_message_data); i++) { 
       Serial.write(rx_message_data[i]);
     } 
-
-    unsigned long packet_length = sizeof(rx_message_data);
-
-    byte rx_message_len[4];
-    pack_long_be(rx_message_len, 16);
-
-    byte packet[sizeof(rx_message_len) + sizeof(rx_message_data)];
-
-    memcpy(packet, rx_message_len, sizeof(rx_message_len));
-    memcpy(packet + sizeof(rx_message_len), rx_message_data, sizeof(rx_message_data));
 
     Serial.flush();
   }
