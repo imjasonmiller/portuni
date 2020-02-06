@@ -61,6 +61,7 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransceiverCodecSystem> for TransceiverCodecSyst
 }
 
 impl<'a> System<'a> for TransceiverCodecSystem {
+    // TODO: Create a seperate human-readable type
     type SystemData = (Read<'a, Option<Arc<Mutex<Receiver<Magnetometer>>>>>,);
 
     fn run(&mut self, _data: Self::SystemData) {

@@ -36,16 +36,6 @@ void setup() {
   radio.flush_rx();
 }
 
-// Pack bytes in Big Endian.
-byte *pack_long_be(byte pack[4], long value) {
-  pack[0] = (value >> 24) & 0xFF;
-  pack[1] = (value >> 16) & 0xFF;
-  pack[2] = (value >> 8) & 0xFF;
-  pack[3] = value & 0xFF;
-  
-  return pack;
-}
-
 void loop() {
   if (radio.available()) {
 
