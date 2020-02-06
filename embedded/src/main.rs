@@ -139,7 +139,7 @@ fn nrf24_tx() -> ! {
     let mut buf = [0u8; 32];
 
     loop {
-        delay.delay_ms(50_u16);
+        // delay.delay_ms(50_u16);
 
         // iprintln!(stim, "Magnetometer: {:?}", lsm303dlhc.mag().unwrap());
 
@@ -163,8 +163,6 @@ fn nrf24_tx() -> ! {
             iprintln!(stim, "data: {:?}", &output);
 
             leds[Direction::West].on();
-
-        // iprintln!(stim, "Sent some data");
         } else {
             leds[Direction::North].on();
             iprintln!(stim, "Cant' send: {}", radio.is_full().unwrap());
