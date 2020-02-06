@@ -2,11 +2,8 @@ mod app;
 mod cobs_buffer;
 mod compass;
 mod config;
-mod serial;
-mod systems;
-mod usbreader;
-
-use std::path::PathBuf;
+mod system;
+mod transceiver;
 
 use crate::app::App;
 
@@ -33,8 +30,13 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(TransformBundle::new())?
         .with_bundle(UiBundle::<StringBindings>::new())?
         .with_system_desc(
-            crate::systems::ui::UiEventHandlerSystemDesc::default(),
+            system::ui::UiEventHandlerSystemDesc::default(),
             "ui_event_handler",
+            &[],
+        )
+        .with_system_desc(
+            system::transceiver::TransceiverCodecSystem::new(),
+            "transceiver_codec",
             &[],
         )
         .with_bundle(InputBundle::<StringBindings>::new())?

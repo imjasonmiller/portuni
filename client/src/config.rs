@@ -116,7 +116,7 @@ fn default_parity() -> serialport::Parity {
     serialport::Parity::None
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TransceiverSettings {
     pub vid: u16,

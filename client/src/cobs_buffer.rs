@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 pub enum BufferResult<'a, T> {
     Consumed,
     Overfull(&'a [u8]),
-    DeserError(&'a [u8]),
+    DeserErr(&'a [u8]),
     Success { data: T, remaining: &'a [u8] },
 }
 
@@ -39,7 +39,7 @@ impl Buffer {
                         data: t,
                         remaining: release,
                     },
-                    Err(_) => BufferResult::DeserError(release),
+                    Err(_) => BufferResult::DeserErr(release),
                 };
 
                 self.index = 0;

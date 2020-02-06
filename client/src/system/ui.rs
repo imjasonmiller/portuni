@@ -24,8 +24,7 @@ impl<'a> System<'a> for UiEventHandlerSystem {
     fn run(&mut self, events: Self::SystemData) {
         // Reader id was just initialized above if empty
         for ev in events.read(&mut self.reader_id) {
-            println!("[system] you just interacted with a UI element");
-            // log::info!("[SYSTEM] You just interacted with an ui element: {:?}", ev);
+            println!("[system] you just interacted with a UI element: {:?}", ev);
         }
     }
 }

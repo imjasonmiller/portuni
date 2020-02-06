@@ -1,5 +1,6 @@
 use rusb::Error::{NotFound, NotSupported};
 use rusb::{Context, Device, DeviceList, Hotplug, UsbContext};
+use serialport::{available_ports, SerialPortType::UsbPort};
 
 struct HotPlugHandler;
 
@@ -13,17 +14,34 @@ impl<T: UsbContext> Hotplug<T> for HotPlugHandler {
     }
 }
 
-pub struct Receiver {
+pub struct TransceiverDevice {
     context: Context,
     vid: u16,
     pid: u16,
 }
 
-impl Receiver {
-    pub fn new((vid, pid): (u16, u16)) -> Result<Receiver, rusb::Error> {
+impl TransceiverDevice {
+    pub fn new((vid, pid): (u16, u16)) -> Result<TransceiverDevice, rusb::Error> {
         let context = Context::new()?;
 
-        Ok(Receiver { context, vid, pid })
+        Ok(TransceiverDevice { context, vid, pid })
+    }
+
+    pub fn port_name(&self) -> Result<String, serialport::ErrorKind> {
+        if let Ok(ports) = available_ports() {
+            for p in ports {
+                match p.port_type {
+                    UsbPort(device) => {
+                        if (device.vid, device.pid) == (self.vid, self.pid) {
+                            return Ok(p.port_name);
+                        }
+                    }
+                    _ => continue,
+                }
+            }
+        }
+
+        Err(serialport::ErrorKind::NoDevice)
     }
 
     pub fn is_connected(&self) -> rusb::Result<()> {
@@ -33,9 +51,8 @@ impl Receiver {
                 Err(_) => continue,
             };
 
+            // TODO: Return bool
             if device_desc.vendor_id() == self.vid && device_desc.product_id() == self.pid {
-                // Listen
-                // println!("{:?}", device.)
                 return Ok(());
             }
         }
