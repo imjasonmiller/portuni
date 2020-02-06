@@ -8,6 +8,7 @@ pub fn coords_to_degrees((x, y): (f32, f32)) -> f32 {
 mod tests {
     use super::*;
 
+    // TODO: Test floats properly, see https://floating-point-gui.de/errors/comparison/
     #[test]
     fn test_coords_to_degrees() {
         assert_eq!(coords_to_degrees((-1.0, 0.0)), 360.0);
