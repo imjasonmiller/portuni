@@ -139,10 +139,7 @@ fn nrf24_tx() -> ! {
     let mut buf = [0u8; 32];
 
     loop {
-        // delay.delay_ms(50_u16);
-
-        // iprintln!(stim, "Magnetometer: {:?}", lsm303dlhc.mag().unwrap());
-
+        // TODO: Blink lights independently from TX loop time
         if radio.can_send().unwrap() {
             radio.flush_tx().unwrap();
 
