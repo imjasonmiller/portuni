@@ -1,0 +1,69 @@
+name: Rust
+
+on: [push]
+
+jobs:
+  build:
+
+    name: Build for ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+        include:
+          - os: ubuntu-latest
+            feature: vulkan
+            archive: tar
+            output: server-x86_64-unknown-linux-gnu
+            artifact_prefix: pong 
+          - os: windows-latest
+            feature: vulkan
+            archive: zip
+            output: server-x86_64-windows-msvc
+            artifact_prefix: pong.exe 
+          - os: macos-latest
+            feature: metal
+            archive: tar
+            output: server-x86_64-apple-darwin
+            artifact_prefix: pong 
+
+    steps:
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+
+    - name: Install Ubuntu dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y -qq gcc pkg-config openssl libasound2-dev cmake build-essential python3 libfreetype6-dev libexpat1-dev libxcb-composite0-dev libssl-dev libx11-dev 
+
+    - uses: actions/checkout@v1
+    - name: Build
+      run: cargo build --release --no-default-features --features "${{ matrix.feature }}"
+
+    - name: Pack artifact for Linux/macOS
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+      run: |
+        mkdir ${{ matrix.output }}
+        cp -r config ${{ matrix.output }}/
+        cp -p target/release/${{ matrix.artifact_prefix }} ${{ matrix.output }}/
+
+    - name: Pack artifact for Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir ${{ matrix.output }}
+        xcopy config ${{ matrix.output }}\ /E /K /Y
+        xcopy target\release\${{ matrix.artifact_prefix }} ${{ matrix.output }}\
+         
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: ${{ matrix.output }}
+        path: ${{ matrix.output }}
+
