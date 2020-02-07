@@ -42,9 +42,7 @@ void loop() {
     byte rx_message_data[radio.getDynamicPayloadSize()]; 
     radio.read(&rx_message_data, radio.getDynamicPayloadSize());
 
-    for (int i = 0; i < sizeof(rx_message_data); i++) { 
-      Serial.write(rx_message_data[i]);
-    } 
+    Serial.write(rx_message_data, sizeof(rx_message_data));
 
     Serial.flush();
   }
