@@ -32,7 +32,7 @@ Container(
         // Transceiver information
         Label(
             transform: (
-                id: "tx_connected",
+                id: "trx_status",
                 // x: 100.,
                 y: -100.0,
                 width: 300.,
