@@ -41,7 +41,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
           sudo apt-get update
-          sudo apt-get install -y -qq gcc pkg-config openssl libasound2-dev cmake build-essential python3 libfreetype6-dev libexpat1-dev libxcb-composite0-dev libssl-dev libx11-dev 
+          sudo apt-get install -y -qq gcc pkg-config libudev-dev openssl libasound2-dev cmake build-essential python3 libfreetype6-dev libexpat1-dev libxcb-composite0-dev libssl-dev libx11-dev 
 
     - uses: actions/checkout@v1
     - name: Build
