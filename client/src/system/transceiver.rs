@@ -3,13 +3,13 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::thread;
-use std::time::Duration;
 
 use amethyst::{
+    config::Config,
     core::SystemDesc,
-    ecs::prelude::{Read, System, SystemData, Write},
+    ecs::prelude::{Read, ReadExpect, System, SystemData, Write, WriteStorage},
     prelude::*,
-    shrev::{EventChannel, ReaderId},
+    ui::{UiFinder, UiText},
     utils::application_root_dir,
 };
 
@@ -60,31 +60,43 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransceiverCodecSystem> for TransceiverCodecSyst
     }
 }
 
-impl<'a> System<'a> for TransceiverCodecSystem {
-    // TODO: Create a seperate human-readable type
-    type SystemData = (Read<'a, Option<Arc<Mutex<Receiver<Magnetometer>>>>>,);
+use crate::state::app::CompassUI;
 
-    fn run(&mut self, _data: Self::SystemData) {
-        // Option
+impl<'a> System<'a> for TransceiverCodecSystem {
+    // TODO: Create seperate human-readable type for thread
+    type SystemData = (
+        Read<'a, Option<Arc<Mutex<Receiver<Magnetometer>>>>>,
+        UiFinder<'a>,
+        WriteStorage<'a, UiText>,
+        Read<'a, CompassUI>,
+    );
+
+    // fn run(&mut self, _data: Self::SystemData) {
+    fn run(&mut self, (mut _first, ui_finder, mut ui_text, _compass_ui): Self::SystemData) {
+        // TODO: Look into .and_then and .map to make this easier to read and more succinct
         let recv = match &self.trx_recv {
             Some(v) => v,
             _ => return,
         };
 
-        // Result
         let data = match recv.try_lock() {
             Ok(d) => d,
             _ => return,
         };
 
-        // Result
         let value = match data.try_recv() {
             Ok(v) => v,
             _ => return,
         };
 
         let degrees = crate::compass::coords_to_degrees((value.x as f32, value.y as f32));
-        println!("Degrees: {:?}, Value: {:?}", degrees, value);
+
+        if let Some(heading) = ui_finder
+            .find("heading")
+            .and_then(|entity| ui_text.get_mut(entity))
+        {
+            heading.text = format!("{:0padding$.0}", degrees, padding = 3);
+        }
     }
 }
 
@@ -110,6 +122,7 @@ fn read_serial(send: Sender<Magnetometer>, config: TransceiverSettings) {
     let mut window_buf = Buffer::new();
 
     loop {
+        // TODO: Reduce indentation
         if let Ok(t) = port.read(serial_buf.as_mut_slice()) {
             let mut window = &serial_buf[..t];
 

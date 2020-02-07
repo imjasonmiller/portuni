@@ -1,14 +1,14 @@
-mod app;
+mod state;
+mod system;
+
 mod cobs_buffer;
 mod compass;
 mod config;
-mod system;
 mod transceiver;
 
-use crate::app::App;
+use state::app::App;
 
 use amethyst::{
-    config::Config,
     core::transform::TransformBundle,
     // ecs::World,
     // gltf::{GltfSceneAsset, GltfSceneFormat, GltfSceneLoaderSystemDesc},

@@ -51,7 +51,7 @@ impl TransceiverDevice {
                 Err(_) => continue,
             };
 
-            // TODO: Return bool
+            // TODO: Implement device serial detection in config and "is_connected"
             if device_desc.vendor_id() == self.vid && device_desc.product_id() == self.pid {
                 return Ok(());
             }

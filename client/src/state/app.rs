@@ -4,23 +4,19 @@ use amethyst::{
     prelude::*,
     renderer::Camera,
     ui::{UiCreator, UiFinder, UiText},
-    // utils::application_root_dir,
     window::ScreenDimensions,
 };
 
-use std::io;
-use std::sync::{mpsc, Arc, Mutex};
-
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct CompassUI {
     pub heading: Option<Entity>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct App {
     ui_root: Option<Entity>,
-    compass_ui: CompassUI,
-    tx_connected: Option<Entity>,
+    pub compass_ui: CompassUI,
+    trx_status: Option<Entity>,
 }
 
 impl SimpleState for App {
@@ -38,46 +34,22 @@ impl SimpleState for App {
     fn update(&mut self, state_data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         let StateData { world, .. } = state_data;
 
-        // Load and assign "Heading" UI element
-        if self.compass_ui.heading.is_none() {
+        // Assign UI elements
+        if self.compass_ui.heading.is_none() || self.trx_status.is_none() {
             world.exec(|finder: UiFinder| {
-                if let Some(entity) = finder.find("heading") {
-                    self.compass_ui.heading = Some(entity);
-                }
-            })
-        }
-
-        if self.tx_connected.is_none() {
-            world.exec(|finder: UiFinder| {
-                if let Some(entity) = finder.find("tx_connected") {
-                    self.tx_connected = Some(entity);
-                }
+                self.compass_ui.heading = finder.find("heading");
+                self.trx_status = finder.find("trx_status");
             })
         }
 
         // if !self.paused {
         let mut ui_text = world.write_storage::<UiText>();
 
-        if let Some(heading) = self
-            .compass_ui
-            .heading
-            .and_then(|entity| ui_text.get_mut(entity))
-        {
-            if let Ok(value) = heading.text.parse::<i32>() {
-                let mut new_value = value * 10;
-                if new_value > 100_000 {
-                    new_value = 1;
-                }
-                heading.text = new_value.to_string();
-            } else {
-                heading.text = String::from("1");
-            }
-        }
-
         // TODO: Implement USB transceiver connection status
-        if let Some(tx_connected) = self.tx_connected.and_then(|entity| ui_text.get_mut(entity)) {
+        if let Some(tx_connected) = self.trx_status.and_then(|entity| ui_text.get_mut(entity)) {
             tx_connected.text = String::from("not connected");
         }
+
         Trans::None
     }
 }
