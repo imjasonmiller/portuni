@@ -43,7 +43,5 @@ void loop() {
     radio.read(&rx_message_data, radio.getDynamicPayloadSize());
 
     Serial.write(rx_message_data, sizeof(rx_message_data));
-
-    Serial.flush();
   }
 }
