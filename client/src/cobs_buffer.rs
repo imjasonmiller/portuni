@@ -1,3 +1,5 @@
+/// For more information on Consistent Overhead Byte Stuffing (COBS) see:
+/// https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing
 use postcard::from_bytes_cobs;
 use serde::de::DeserializeOwned;
 
