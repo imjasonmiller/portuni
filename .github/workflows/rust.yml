@@ -18,17 +18,17 @@ jobs:
             feature: vulkan
             archive: tar
             output: server-x86_64-unknown-linux-gnu
-            artifact_prefix: pong 
+            artifact_prefix: portuni-client 
           - os: windows-latest
             feature: vulkan
             archive: zip
             output: server-x86_64-windows-msvc
-            artifact_prefix: pong.exe 
+            artifact_prefix: portuni-client.exe 
           - os: macos-latest
             feature: metal
             archive: tar
             output: server-x86_64-apple-darwin
-            artifact_prefix: pong 
+            artifact_prefix: portuni-client
 
     steps:
     - name: Install Rust toolchain
