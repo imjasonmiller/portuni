@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+// TODO: Correct offset from the LSM303DLHC
 pub fn coords_to_degrees((x, y): (f32, f32)) -> f32 {
     (y.atan2(x) * 180.0) / PI + 180.0
 }

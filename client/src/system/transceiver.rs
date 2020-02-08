@@ -27,13 +27,19 @@ pub struct Magnetometer {
     command: String,
 }
 
+use crate::utils::interp::MovingAverage;
+
 pub struct TransceiverCodecSystem {
     trx_recv: Option<Arc<Mutex<Receiver<Magnetometer>>>>,
+    average: MovingAverage,
 }
 
 impl TransceiverCodecSystem {
     pub fn new() -> TransceiverCodecSystem {
-        TransceiverCodecSystem { trx_recv: None }
+        TransceiverCodecSystem {
+            trx_recv: None,
+            average: MovingAverage::new(16, None),
+        }
     }
 }
 
@@ -45,6 +51,8 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransceiverCodecSystem> for TransceiverCodecSyst
         };
 
         let config = TransceiverSettings::load(config_path).unwrap();
+        // TODO: Do not clone, there must be a better solution to sharing data with the thread?
+        // Pass reference to world and fetch there
         let config2 = config.clone();
         world.insert(config);
 
@@ -56,6 +64,7 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransceiverCodecSystem> for TransceiverCodecSyst
 
         TransceiverCodecSystem {
             trx_recv: Some(recv),
+            average: MovingAverage::new(16, None),
         }
     }
 }
@@ -71,7 +80,6 @@ impl<'a> System<'a> for TransceiverCodecSystem {
         Read<'a, CompassUI>,
     );
 
-    // fn run(&mut self, _data: Self::SystemData) {
     fn run(&mut self, (mut _first, ui_finder, mut ui_text, _compass_ui): Self::SystemData) {
         // TODO: Look into .and_then and .map to make this easier to read and more succinct
         let recv = match &self.trx_recv {
@@ -90,18 +98,19 @@ impl<'a> System<'a> for TransceiverCodecSystem {
         };
 
         let degrees = crate::compass::coords_to_degrees((value.x as f32, value.y as f32));
+        let average = self.average.add(degrees as f64);
+        // println!("average: {}", average);
 
         if let Some(heading) = ui_finder
             .find("heading")
             .and_then(|entity| ui_text.get_mut(entity))
         {
-            heading.text = format!("{:0padding$.0}", degrees, padding = 3);
+            heading.text = format!("{:0padding$.0}", average, padding = 3);
         }
     }
 }
 
-use crate::cobs_buffer::Buffer;
-use crate::cobs_buffer::BufferResult;
+use crate::cobs_buffer::{Buffer, BufferResult};
 
 fn read_serial(send: Sender<Magnetometer>, config: TransceiverSettings) {
     let trx = TransceiverDevice::new((config.vid, config.pid)).unwrap();
@@ -134,6 +143,8 @@ fn read_serial(send: Sender<Magnetometer>, config: TransceiverSettings) {
                     Overfull(new_window) => new_window,
                     DeserErr(new_window) => new_window,
                     Success { data, remaining } => {
+                        // println!("Data: {:?}", data);
+
                         send.send(data).unwrap();
 
                         remaining

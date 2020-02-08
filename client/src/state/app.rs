@@ -12,11 +12,27 @@ pub struct CompassUI {
     pub heading: Option<Entity>,
 }
 
+// Move this to a seperate entity creation system
+use crate::{DroneMarker, ScenePrefabData};
+use amethyst::{
+    assets::{Completion, Handle, Prefab, PrefabLoader, ProgressCounter, RonFormat},
+    ecs::{Write, WriteStorage},
+    utils::tag::{Tag, TagFinder},
+};
+
+#[derive(Default)]
+struct Scene {
+    handle: Option<Handle<Prefab<ScenePrefabData>>>,
+}
+
 #[derive(Debug, Default)]
 pub struct App {
     ui_root: Option<Entity>,
     pub compass_ui: CompassUI,
     trx_status: Option<Entity>,
+    progress: Option<ProgressCounter>,
+    initialized: bool,
+    entity: Option<Entity>,
 }
 
 impl SimpleState for App {
@@ -27,11 +43,61 @@ impl SimpleState for App {
         initialize_drone(world);
         initialize_camera(world);
 
+        self.progress = Some(ProgressCounter::default());
+
         self.ui_root =
             Some(world.exec(|mut creator: UiCreator<'_>| creator.create("ui/main.ron", ())));
+
+        world.exec(
+            |(loader, mut scene): (PrefabLoader<'_, ScenePrefabData>, Write<'_, Scene>)| {
+                scene.handle = Some(loader.load(
+                    "prefab/scene.ron",
+                    RonFormat,
+                    self.progress.as_mut().unwrap(),
+                ));
+            },
+        );
     }
 
     fn update(&mut self, state_data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        if !self.initialized {
+            let remove = match self.progress.as_ref().map(|p| p.complete()) {
+                None | Some(Completion::Loading) => false,
+                Some(Completion::Complete) => {
+                    let scene_handle = state_data
+                        .world
+                        .read_resource::<Scene>()
+                        .handle
+                        .as_ref()
+                        .unwrap()
+                        .clone();
+
+                    state_data.world.create_entity().with(scene_handle).build();
+
+                    true
+                }
+
+                Some(Completion::Failed) => {
+                    println!("Error: {:?}", self.progress.as_ref().unwrap().errors());
+                    return Trans::Quit;
+                }
+            };
+
+            if remove {
+                self.progress = None;
+            }
+
+            if self.entity.is_none() {
+                if let Some(entity) = state_data
+                    .world
+                    .exec(|finder: TagFinder<'_, DroneMarker>| finder.find())
+                {
+                    self.entity = Some(entity);
+                    self.initialized = true;
+                }
+            }
+        }
+
         let StateData { world, .. } = state_data;
 
         // Assign UI elements
@@ -56,7 +122,7 @@ impl SimpleState for App {
 
 fn initialize_camera(world: &mut World) {
     let mut transform = Transform::default();
-    transform.set_translation_xyz(0.0, 0.0, 1.0);
+    transform.set_translation_xyz(0.0, 1.0, 3.0);
 
     let (width, height) = {
         let dim = world.read_resource::<ScreenDimensions>();

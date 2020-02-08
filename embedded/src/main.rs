@@ -24,7 +24,7 @@ use f3::{
         timer::{Event, Timer},
     },
     led::{Direction, Leds},
-    lsm303dlhc::I16x3,
+    lsm303dlhc::{I16x3, MagOdr},
     Lsm303dlhc,
 };
 
@@ -75,6 +75,9 @@ fn nrf24_tx() -> ! {
     let sda = gpiob.pb7.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
     let i2c = I2c::i2c1(dp.I2C1, (scl, sda), 400.khz(), clocks, &mut rcc.apb1);
     let mut lsm303dlhc = Lsm303dlhc::new(i2c).unwrap();
+
+    // Set the magnetometer output data rate to 30 Hz
+    lsm303dlhc.mag_odr(MagOdr::Hz30).unwrap();
 
     // Delays
     let mut delay = Delay::new(cp.SYST, clocks);
