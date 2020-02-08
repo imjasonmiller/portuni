@@ -46,14 +46,10 @@ impl TransceiverDevice {
 
     pub fn is_connected(&self) -> rusb::Result<()> {
         for device in DeviceList::new()?.iter() {
-            let device_desc = match device.device_descriptor() {
-                Ok(d) => d,
-                Err(_) => continue,
-            };
-
-            // TODO: Implement device serial detection in config and "is_connected"
-            if device_desc.vendor_id() == self.vid && device_desc.product_id() == self.pid {
-                return Ok(());
+            if let Ok(desc) = device.device_descriptor() {
+                if desc.vendor_id() == self.vid && desc.product_id() == self.pid {
+                    return Ok(());
+                }
             }
         }
 
