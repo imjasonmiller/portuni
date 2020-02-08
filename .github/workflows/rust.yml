@@ -30,6 +30,27 @@ jobs:
             output: client-x86_64-apple-darwin
             artifact_prefix: portuni-client
 
+    # Cache dependencies
+
+    - name: Cache Cargo registry
+      uses: actions/cache@v1
+      id: cache_registry
+      with:
+          path: ~/.cargo/registry
+          key: ${{ matrix.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache Cargo index
+      uses: actions/cache@v1
+      id: cache_index
+      with:
+          path: ~/.cargo/git
+          key: ${{ matrix.os }}-cargo-index${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache Cargo build
+      uses: actions/cache@v1
+      id: cache_build
+      with:
+          path: client/target
+          key: ${{ matrix.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
     steps:
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -43,11 +64,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y -qq gcc pkg-config libudev-dev openssl libasound2-dev cmake build-essential python3 libfreetype6-dev libexpat1-dev libxcb-composite0-dev libssl-dev libx11-dev 
 
-    - uses: actions/checkout@v2
+    # Build for release
+
     - name: Build
+    - uses: actions/checkout@v2
+    if: steps.cache_build.outputs.cache-hit != 'true'
       run: cargo build --manifest-path=client/Cargo.toml --release --no-default-features --features "${{ matrix.feature }}"
 
-    - name: Pack artifact for Linux/macOS
+    # Create zip and tarball
+
+    - name: Pack artifact for Linux and macOS
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
       run: |
         mkdir ${{ matrix.output }}
