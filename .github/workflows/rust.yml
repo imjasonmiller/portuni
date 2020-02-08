@@ -51,6 +51,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
       run: |
         mkdir ${{ matrix.output }}
+        cp -r client/assets ${{ matrix.output }}/
         cp -r client/config ${{ matrix.output }}/
         cp -p client/target/release/${{ matrix.artifact_prefix }} ${{ matrix.output }}/
 
@@ -58,6 +59,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         mkdir ${{ matrix.output }}
+        xcopy client\assets ${{ matrix.output }}\ /E /K /Y
         xcopy client\config ${{ matrix.output }}\ /E /K /Y
         xcopy client\target\release\${{ matrix.artifact_prefix }} ${{ matrix.output }}\
          
