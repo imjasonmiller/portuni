@@ -17,17 +17,17 @@ jobs:
           - os: ubuntu-latest
             feature: vulkan
             archive: tar
-            output: server-x86_64-unknown-linux-gnu
+            output: client-x86_64-unknown-linux-gnu
             artifact_prefix: portuni-client 
           - os: windows-latest
             feature: vulkan
             archive: zip
-            output: server-x86_64-windows-msvc
+            output: client-x86_64-windows-msvc
             artifact_prefix: portuni-client.exe 
           - os: macos-latest
             feature: metal
             archive: tar
-            output: server-x86_64-apple-darwin
+            output: client-x86_64-apple-darwin
             artifact_prefix: portuni-client
 
     steps:
