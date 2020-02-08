@@ -198,6 +198,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "portuni-embedded"
+version = "0.1.0"
+dependencies = [
+ "cortex-m 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cortex-m-rt 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embedded-hal 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embedded-nrf24l01 0.2.0 (git+https://github.com/diondokter/embedded-nrf24l01)",
+ "f3 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "m 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "panic-itm 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "postcard 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "stm32f30x-hal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "postcard"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -233,22 +249,6 @@ dependencies = [
 name = "r0"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "rust-embed-nrf24l01"
-version = "0.1.0"
-dependencies = [
- "cortex-m 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cortex-m-rt 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "embedded-hal 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "embedded-nrf24l01 0.2.0 (git+https://github.com/diondokter/embedded-nrf24l01)",
- "f3 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "m 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "panic-itm 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "postcard 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
- "stm32f30x-hal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "rustc_version"

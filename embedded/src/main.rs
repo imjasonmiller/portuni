@@ -1,5 +1,5 @@
-#![no_main]
 #![no_std]
+#![no_main]
 #![deny(unsafe_code)]
 #![allow(unused_imports)]
 #[allow(unused_extern_crates)]
@@ -139,10 +139,27 @@ fn nrf24_tx() -> ! {
     cp.DCB.enable_trace();
     cp.DWT.enable_cycle_counter();
 
+    // 32 byte buffer for the NRF24L01+ payload
     let mut buf = [0u8; 32];
 
+    // TX LED Timer
+    let mut timer = Timer::tim6(dp.TIM6, 2.hz(), clocks, &mut rcc.apb1);
+    let mut is_tx_blinking = false;
+
+    timer.start(2.hz());
+
     loop {
-        // TODO: Blink lights independently from TX loop time
+        // Blink light
+        if let Ok(()) = timer.wait() {
+            if is_tx_blinking {
+                leds[Direction::West].on()
+            } else {
+                leds[Direction::West].off()
+            }
+
+            is_tx_blinking = !is_tx_blinking;
+        }
+
         if radio.can_send().unwrap() {
             radio.flush_tx().unwrap();
 
@@ -160,9 +177,6 @@ fn nrf24_tx() -> ! {
             .unwrap();
 
             radio.send(&output).unwrap();
-            iprintln!(stim, "data: {:?}", &output);
-
-            leds[Direction::West].on();
         } else {
             leds[Direction::North].on();
             iprintln!(stim, "Cant' send: {}", radio.is_full().unwrap());
@@ -171,9 +185,6 @@ fn nrf24_tx() -> ! {
             iprintln!(stim, "Queue is empty");
         }
         delay.delay_ms(10_u8);
-
-        leds[Direction::North].off();
-        leds[Direction::West].off();
     }
 }
 
