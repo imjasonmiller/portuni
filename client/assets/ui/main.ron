@@ -23,7 +23,7 @@ Container(
             ),
             text: (
                 text: "Heading",
-                font: File("fonts/B612Mono-Regular.ttf", ("TTF", ())),
+                font: File("font/B612Mono-Regular.ttf", ("TTF", ())),
                 font_size: 14.,
                 color: (1.0, 1.0, 1.0, 1.0),
             )
@@ -43,7 +43,7 @@ Container(
             ),
             text: (
                 text: "Transceiver connected?",
-                font: File("fonts/B612Mono-Regular.ttf", ("TTF", ())),
+                font: File("font/B612Mono-Regular.ttf", ("TTF", ())),
                 font_size: 14.,
                 color: (1.0, 1.0, 1.0, 1.0),
             )
