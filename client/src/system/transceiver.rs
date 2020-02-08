@@ -31,14 +31,16 @@ use crate::utils::interp::MovingAverage;
 
 pub struct TransceiverCodecSystem {
     trx_recv: Option<Arc<Mutex<Receiver<Magnetometer>>>>,
-    average: MovingAverage,
+    mag_x_avg: MovingAverage,
+    mag_y_avg: MovingAverage,
 }
 
 impl TransceiverCodecSystem {
     pub fn new() -> TransceiverCodecSystem {
         TransceiverCodecSystem {
             trx_recv: None,
-            average: MovingAverage::new(16, None),
+            mag_x_avg: MovingAverage::new(32, None),
+            mag_y_avg: MovingAverage::new(32, None),
         }
     }
 }
@@ -64,7 +66,8 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransceiverCodecSystem> for TransceiverCodecSyst
 
         TransceiverCodecSystem {
             trx_recv: Some(recv),
-            average: MovingAverage::new(16, None),
+            mag_x_avg: MovingAverage::new(32, None),
+            mag_y_avg: MovingAverage::new(32, None),
         }
     }
 }
@@ -97,15 +100,16 @@ impl<'a> System<'a> for TransceiverCodecSystem {
             _ => return,
         };
 
-        let degrees = crate::compass::coords_to_degrees((value.x as f32, value.y as f32));
-        let average = self.average.add(degrees as f64);
-        // println!("average: {}", average);
+        let mag_x_avg = self.mag_x_avg.add(value.x as f64) as f32;
+        let mag_y_avg = self.mag_y_avg.add(value.y as f64) as f32;
+
+        let degrees = crate::compass::coords_to_degrees((mag_x_avg, mag_y_avg));
 
         if let Some(heading) = ui_finder
             .find("heading")
             .and_then(|entity| ui_text.get_mut(entity))
         {
-            heading.text = format!("{:0padding$.0}", average, padding = 3);
+            heading.text = format!("{:0padding$.0}", degrees, padding = 3);
         }
     }
 }

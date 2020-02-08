@@ -2235,6 +2235,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "portuni-client"
+version = "0.1.0"
+dependencies = [
+ "amethyst 0.13.2 (git+https://github.com/amethyst/amethyst?rev=37df46b)",
+ "postcard 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusb 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serialport 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "postcard"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3460,17 +3471,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "unicode-xid"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "usb-nrf24l01"
-version = "0.1.0"
-dependencies = [
- "amethyst 0.13.2 (git+https://github.com/amethyst/amethyst?rev=37df46b)",
- "postcard 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "rusb 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
- "serialport 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "vcpkg"
