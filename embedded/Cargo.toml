@@ -1,5 +1,5 @@
 [package]
-name = "rust-embed-nrf24l01"
+name = "portuni-embedded"
 version = "0.1.0"
 authors = ["Jason Miller <contact@jasonmiller.nl>"]
 edition = "2018"

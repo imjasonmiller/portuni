@@ -1,5 +1,5 @@
 [package]
-name = "usb-nrf24l01"
+name = "portuni-client"
 version = "0.1.0"
 authors = ["Jason Miller <contact@jasonmiller.nl>"]
 edition = "2018"
