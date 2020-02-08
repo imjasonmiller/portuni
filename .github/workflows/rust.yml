@@ -30,28 +30,34 @@ jobs:
             output: client-x86_64-apple-darwin
             artifact_prefix: portuni-client
 
+
+    steps:
+
+    - uses: actions/checkout@v2
+
     # Cache dependencies
 
-    - name: Cache Cargo registry
+    - name: Cache cargo registry
       uses: actions/cache@v1
       id: cache_registry
       with:
-          path: ~/.cargo/registry
-          key: ${{ matrix.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-    - name: Cache Cargo index
+        path: ~/.cargo/registry
+        key: ${{ matrix.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
       uses: actions/cache@v1
       id: cache_index
       with:
-          path: ~/.cargo/git
-          key: ${{ matrix.os }}-cargo-index${{ hashFiles('**/Cargo.lock') }}
+        path: ~/.cargo/git
+        key: ${{ matrix.os }}-cargo-index${{ hashFiles('**/Cargo.lock') }}
+
     - name: Cache Cargo build
       uses: actions/cache@v1
       id: cache_build
       with:
-          path: client/target
-          key: ${{ matrix.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+        path: client/target
+        key: ${{ matrix.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-    steps:
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -67,8 +73,7 @@ jobs:
     # Build for release
 
     - name: Build
-    - uses: actions/checkout@v2
-    if: steps.cache_build.outputs.cache-hit != 'true'
+      if: steps.cache_build.outputs.cache-hit != 'true'
       run: cargo build --manifest-path=client/Cargo.toml --release --no-default-features --features "${{ matrix.feature }}"
 
     # Create zip and tarball
