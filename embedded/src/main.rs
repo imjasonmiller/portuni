@@ -213,7 +213,8 @@ fn nrf24_tx() -> ! {
             is_tx_blinking = !is_tx_blinking;
         }
 
-        if radio.can_send().unwrap() {
+        if let Ok(true) = radio.can_send() {
+            // if radio.can_send().unwrap() {
             radio.flush_tx().unwrap();
 
             // Magnetometer x and y are only needed for heading
@@ -254,7 +255,6 @@ fn nrf24_tx() -> ! {
             radio.wait_empty().unwrap();
             iprintln!(stim, "Queue is empty");
         }
-        delay.delay_ms(5_u8);
     }
 }
 
