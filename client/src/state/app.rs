@@ -40,6 +40,7 @@ impl SimpleState for App {
         let world = data.world;
 
         world.register::<Drone>();
+        world.register::<DroneMarker>();
         initialize_drone(world);
         initialize_camera(world);
 
@@ -61,6 +62,8 @@ impl SimpleState for App {
 
     fn update(&mut self, state_data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         if !self.initialized {
+            let mut transform = Transform::default();
+
             let remove = match self.progress.as_ref().map(|p| p.complete()) {
                 None | Some(Completion::Loading) => false,
                 Some(Completion::Complete) => {
@@ -72,7 +75,12 @@ impl SimpleState for App {
                         .unwrap()
                         .clone();
 
-                    state_data.world.create_entity().with(scene_handle).build();
+                    state_data
+                        .world
+                        .create_entity()
+                        .with(scene_handle)
+                        .with(transform)
+                        .build();
 
                     true
                 }

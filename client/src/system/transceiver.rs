@@ -6,11 +6,12 @@ use std::thread;
 
 use amethyst::{
     config::Config,
-    core::SystemDesc,
-    ecs::prelude::{Read, ReadExpect, System, SystemData, Write, WriteStorage},
+    core::{SystemDesc, Transform},
+    ecs::prelude::{Join, Read, ReadExpect, ReadStorage, System, SystemData, Write, WriteStorage},
     prelude::*,
     ui::{UiFinder, UiText},
     utils::application_root_dir,
+    utils::tag::Tag,
 };
 
 use serialport::{open_with_settings, SerialPortSettings};
@@ -20,19 +21,25 @@ use crate::transceiver::TransceiverDevice;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct Magnetometer {
-    x: i16,
-    y: i16,
-    command: String,
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Telemetry {
+    mag_x: i16,
+    mag_y: i16,
+    gyro_x: f32,
+    gyro_y: f32,
+    gyro_z: f32,
+    temp: i8,
 }
 
 use crate::utils::interp::MovingAverage;
 
 pub struct TransceiverCodecSystem {
-    trx_recv: Option<Arc<Mutex<Receiver<Magnetometer>>>>,
+    trx_recv: Option<Arc<Mutex<Receiver<Telemetry>>>>,
     mag_x_avg: MovingAverage,
     mag_y_avg: MovingAverage,
+    gyro_x_avg: MovingAverage,
+    gyro_y_avg: MovingAverage,
+    gyro_z_avg: MovingAverage,
 }
 
 impl TransceiverCodecSystem {
@@ -41,6 +48,9 @@ impl TransceiverCodecSystem {
             trx_recv: None,
             mag_x_avg: MovingAverage::new(32, None),
             mag_y_avg: MovingAverage::new(32, None),
+            gyro_x_avg: MovingAverage::new(16, None),
+            gyro_y_avg: MovingAverage::new(16, None),
+            gyro_z_avg: MovingAverage::new(16, None),
         }
     }
 }
@@ -52,38 +62,50 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransceiverCodecSystem> for TransceiverCodecSyst
             Err(err) => panic!(err),
         };
 
-        let config = TransceiverSettings::load(config_path).unwrap();
-        // TODO: Do not clone, there must be a better solution to sharing data with the thread?
-        // Pass reference to world and fetch there
-        let config2 = config.clone();
-        world.insert(config);
+        // TODO: Handle error
+        let settings = match TransceiverSettings::load(config_path) {
+            Ok(v) => {
+                world.insert(v.clone());
+                v
+            }
+            Err(e) => panic!(e),
+        };
 
-        let (send, recv): (Sender<Magnetometer>, Receiver<Magnetometer>) = mpsc::channel();
-
+        let (send, recv): (Sender<Telemetry>, Receiver<Telemetry>) = mpsc::channel();
         let recv = Arc::new(Mutex::new(recv));
 
-        thread::spawn(move || read_serial(send, config2));
+        thread::spawn(move || read_serial(settings, send));
 
         TransceiverCodecSystem {
             trx_recv: Some(recv),
             mag_x_avg: MovingAverage::new(32, None),
             mag_y_avg: MovingAverage::new(32, None),
+            gyro_x_avg: MovingAverage::new(16, None),
+            gyro_y_avg: MovingAverage::new(16, None),
+            gyro_z_avg: MovingAverage::new(16, None),
         }
     }
 }
 
 use crate::state::app::CompassUI;
+use crate::DroneMarker;
+use amethyst::core::timing::Time;
 
 impl<'a> System<'a> for TransceiverCodecSystem {
     // TODO: Create seperate human-readable type for thread
     type SystemData = (
-        Read<'a, Option<Arc<Mutex<Receiver<Magnetometer>>>>>,
+        Read<'a, Option<Arc<Mutex<Receiver<Telemetry>>>>>,
         UiFinder<'a>,
         WriteStorage<'a, UiText>,
-        Read<'a, CompassUI>,
+        WriteStorage<'a, Transform>,
+        ReadStorage<'a, Tag<DroneMarker>>,
+        Read<'a, Time>,
     );
 
-    fn run(&mut self, (mut _first, ui_finder, mut ui_text, _compass_ui): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut _first, ui_finder, mut ui_text, mut transforms, drones, time): Self::SystemData,
+    ) {
         // TODO: Look into .and_then and .map to make this easier to read and more succinct
         let recv = match &self.trx_recv {
             Some(v) => v,
@@ -100,11 +122,35 @@ impl<'a> System<'a> for TransceiverCodecSystem {
             _ => return,
         };
 
-        let mag_x_avg = self.mag_x_avg.add(value.x as f64) as f32;
-        let mag_y_avg = self.mag_y_avg.add(value.y as f64) as f32;
+        let mag_x_avg = self.mag_x_avg.add(value.mag_x as f64) as f32;
+        let mag_y_avg = self.mag_y_avg.add(value.mag_y as f64) as f32;
+
+        println!("Data: {:?}", value);
 
         let degrees = crate::compass::coords_to_degrees((mag_x_avg, mag_y_avg));
 
+        let gyro_x =
+            value.gyro_x * (std::f32::consts::PI / 180.0) / (1.0 / time.delta_real_seconds());
+
+        let gyro_y =
+            value.gyro_z * (std::f32::consts::PI / 180.0) / (1.0 / time.delta_real_seconds());
+
+        let gyro_z =
+            value.gyro_y * (std::f32::consts::PI / 180.0) / (1.0 / time.delta_real_seconds());
+
+        for (drone, transform) in (&drones, &mut transforms).join() {
+            // println!("Doing a join");
+            // transform.set_translation_x(0.5);
+            transform.prepend_rotation_x_axis(gyro_x as f32);
+            transform.prepend_rotation_y_axis(gyro_y as f32);
+            transform.prepend_rotation_z_axis(gyro_z as f32);
+            // FIXME: Convert to Vector3 to save two lines
+            // transform.append_rotation_x();
+            // transform.append_rotation_y();
+            // transform.append_rotation_z();
+            // transform.
+            // transform
+        }
         if let Some(heading) = ui_finder
             .find("heading")
             .and_then(|entity| ui_text.get_mut(entity))
@@ -116,7 +162,7 @@ impl<'a> System<'a> for TransceiverCodecSystem {
 
 use crate::cobs_buffer::{Buffer, BufferResult};
 
-fn read_serial(send: Sender<Magnetometer>, config: TransceiverSettings) {
+fn read_serial(config: TransceiverSettings, send: Sender<Telemetry>) {
     let trx = TransceiverDevice::new((config.vid, config.pid)).unwrap();
 
     // TODO: Dispatch error if device or multiple are connected
@@ -142,7 +188,7 @@ fn read_serial(send: Sender<Magnetometer>, config: TransceiverSettings) {
             'cobs: while !window.is_empty() {
                 use BufferResult::*;
 
-                window = match window_buf.write::<Magnetometer>(&window) {
+                window = match window_buf.write::<Telemetry>(&window) {
                     Consumed => break 'cobs,
                     Overfull(new_window) => new_window,
                     DeserErr(new_window) => new_window,

@@ -14,7 +14,8 @@ use f3::{
     hal::{
         delay::Delay,
         flash::FlashExt,
-        gpio::GpioExt,
+        gpio::gpioe::{PEx, PE13, PE15},
+        gpio::{GpioExt, Output, PushPull},
         i2c::I2c,
         prelude::*,
         rcc::RccExt,
@@ -23,9 +24,10 @@ use f3::{
         time::U32Ext,
         timer::{Event, Timer},
     },
+    l3gd20,
     led::{Direction, Leds},
-    lsm303dlhc::{I16x3, MagOdr},
-    Lsm303dlhc,
+    lsm303dlhc::{self, MagOdr},
+    L3gd20, Lsm303dlhc,
 };
 
 use embedded_nrf24l01::{Configuration, CrcMode, DataRate, Error, StandbyMode, NRF24L01};
@@ -33,11 +35,14 @@ use embedded_nrf24l01::{Configuration, CrcMode, DataRate, Error, StandbyMode, NR
 use postcard::{from_bytes, to_slice_cobs};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-struct Magnetometer<'a> {
-    x: i16,
-    y: i16,
-    command: &'a str,
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct Telemetry {
+    mag_x: i16,
+    mag_y: i16,
+    gyro_x: f32,
+    gyro_y: f32,
+    gyro_z: f32,
+    temp: i8,
 }
 
 #[entry]
@@ -60,27 +65,58 @@ fn nrf24_tx() -> ! {
     let mut flash = dp.FLASH.constrain();
     let mut rcc = dp.RCC.constrain();
 
-    // Split gpiod into independent pins and registers
+    // Split GPIO into independent pins and registers
     let mut gpioa = dp.GPIOA.split(&mut rcc.ahb);
     let mut gpiob = dp.GPIOB.split(&mut rcc.ahb);
+    let mut gpioe = dp.GPIOE.split(&mut rcc.ahb);
 
     // LEDs
-    let mut leds = Leds::new(dp.GPIOE.split(&mut rcc.ahb));
+    let mut led_w: PE15<Output<PushPull>> = gpioe
+        .pe15
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
+    let mut _led_s: PE13<Output<PushPull>> = gpioe
+        .pe13
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
+
+    // L3GD20 Gyroscope and temperature sensor
+    let l3gd20_nss = gpioe
+        .pe3
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
 
     // Clocks
     let clocks = rcc.cfgr.freeze(&mut flash.acr);
 
-    // Magnetometer
-    let scl = gpiob.pb6.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
-    let sda = gpiob.pb7.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
-    let i2c = I2c::i2c1(dp.I2C1, (scl, sda), 400.khz(), clocks, &mut rcc.apb1);
-    let mut lsm303dlhc = Lsm303dlhc::new(i2c).unwrap();
+    // The `L3gd20` abstraction exposed by the `f3` crate requires a specific pin configuration to
+    // be used and won't accept any configuration other than the one used here. Trying to use a
+    // different pin configuration will result in a compiler error.
+    let l3gd20_sck = gpioa.pa5.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+    let l3gd20_miso = gpioa.pa6.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+    let l3gd20_mosi = gpioa.pa7.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+    let l3gd20_spi = f3::hal::spi::Spi::spi1(
+        dp.SPI1,
+        (l3gd20_sck, l3gd20_miso, l3gd20_mosi),
+        l3gd20::MODE,
+        1.mhz(),
+        clocks,
+        &mut rcc.apb2,
+    );
+    let mut l3gd20 = L3gd20::new(l3gd20_spi, l3gd20_nss).unwrap();
+    l3gd20.set_scale(l3gd20::Scale::Dps500).unwrap();
+
+    // LSM303DLHC Magnetometer and accelerometer
+    let lsm303dlhc_scl = gpiob.pb6.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
+    let lsm303dlhc_sda = gpiob.pb7.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
+    let lsm303dlhc_i2c = I2c::i2c1(
+        dp.I2C1,
+        (lsm303dlhc_scl, lsm303dlhc_sda),
+        400.khz(),
+        clocks,
+        &mut rcc.apb1,
+    );
+    let mut lsm303dlhc = Lsm303dlhc::new(lsm303dlhc_i2c).unwrap();
 
     // Set the magnetometer output data rate to 30 Hz
     lsm303dlhc.mag_odr(MagOdr::Hz30).unwrap();
-
-    // Delays
-    let mut delay = Delay::new(cp.SYST, clocks);
 
     // Configure pins
     let radio_ce = gpiob
@@ -90,12 +126,24 @@ fn nrf24_tx() -> ! {
         .pb0
         .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
 
-    let radio_sck = gpioa.pa5.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
-    let radio_miso = gpioa.pa6.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
-    let radio_mosi = gpioa.pa7.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+    // SPI2
+    // SPI2_NSS: PB12
+    // SPI2_SCK: PB13
+    // SPI2_MISO: PB14
+    // SPI2_MOSI: PB15
+    // SPI2_SCK: PF9 / PF10
+    // SPI2_NSS (SS): PD15
 
-    let radio_spi = f3::hal::spi::Spi::spi1(
-        dp.SPI1,
+    // FIXME: Use a different pin due to the gyroscope
+    let radio_sck = gpiob.pb13.into_af5(&mut gpiob.moder, &mut gpiob.afrh);
+    let radio_miso = gpiob.pb14.into_af5(&mut gpiob.moder, &mut gpiob.afrh);
+    let radio_mosi = gpiob.pb15.into_af5(&mut gpiob.moder, &mut gpiob.afrh);
+    // let radio_sck = gpioa.pa5.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+    // let radio_miso = gpioa.pa6.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+    // let radio_mosi = gpioa.pa7.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
+
+    let radio_spi = f3::hal::spi::Spi::spi2(
+        dp.SPI2,
         (radio_sck, radio_miso, radio_mosi),
         embedded_hal::spi::Mode {
             phase: embedded_hal::spi::Phase::CaptureOnFirstTransition,
@@ -103,7 +151,7 @@ fn nrf24_tx() -> ! {
         },
         1.mhz(),
         clocks,
-        &mut rcc.apb2,
+        &mut rcc.apb1,
     );
 
     let mut radio = NRF24L01::new(radio_ce, radio_csn, radio_spi).unwrap();
@@ -136,6 +184,9 @@ fn nrf24_tx() -> ! {
     iprintln!(stim, "Register: {:?}", radio.get_address_width().unwrap());
     iprintln!(stim, "Frequency: {:?}", radio.get_frequency().unwrap());
 
+    // Delays
+    let mut delay = Delay::new(cp.SYST, clocks);
+
     cp.DCB.enable_trace();
     cp.DWT.enable_cycle_counter();
 
@@ -152,9 +203,11 @@ fn nrf24_tx() -> ! {
         // Blink light
         if let Ok(()) = timer.wait() {
             if is_tx_blinking {
-                leds[Direction::West].on()
+                led_w.set_high();
+            // leds[Direction::West].on()
             } else {
-                leds[Direction::West].off()
+                led_w.set_low();
+                // leds[Direction::West].off()
             }
 
             is_tx_blinking = !is_tx_blinking;
@@ -164,13 +217,30 @@ fn nrf24_tx() -> ! {
             radio.flush_tx().unwrap();
 
             // Magnetometer x and y are only needed for heading
-            let I16x3 { x, y, .. } = lsm303dlhc.mag().unwrap();
+            let lsm303dlhc::I16x3 {
+                x: mag_x, y: mag_y, ..
+            } = lsm303dlhc.mag().unwrap();
+
+            let l3gd20::I16x3 {
+                x: gyro_x,
+                y: gyro_y,
+                z: gyro_z,
+            } = l3gd20.gyro().unwrap();
+
+            let gyro_x = l3gd20::Scale::Dps500.degrees(gyro_x);
+            let gyro_y = l3gd20::Scale::Dps500.degrees(gyro_y);
+            let gyro_z = l3gd20::Scale::Dps500.degrees(gyro_z);
+
+            let temp = l3gd20.temp().unwrap();
 
             let output = to_slice_cobs(
-                &Magnetometer {
-                    x,
-                    y,
-                    command: "hello",
+                &Telemetry {
+                    mag_x,
+                    mag_y,
+                    gyro_x,
+                    gyro_y,
+                    gyro_z,
+                    temp,
                 },
                 &mut buf,
             )
@@ -178,18 +248,18 @@ fn nrf24_tx() -> ! {
 
             radio.send(&output).unwrap();
         } else {
-            leds[Direction::North].on();
+            // leds[Direction::North].on();
             iprintln!(stim, "Cant' send: {}", radio.is_full().unwrap());
 
             radio.wait_empty().unwrap();
             iprintln!(stim, "Queue is empty");
         }
-        delay.delay_ms(10_u8);
+        delay.delay_ms(5_u8);
     }
 }
 
 fn nrf24_rx() -> ! {
-    // Cortex and device peripherals
+    // Cortex (cp) and device peripherals (dp)
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = stm32f30x::Peripherals::take().unwrap();
 

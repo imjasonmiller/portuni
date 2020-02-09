@@ -2,30 +2,33 @@ pub fn lerp() {
     unimplemented!();
 }
 
+// TODO: Turn this into a generic array and not a vec!
 pub struct MovingAverage {
-    data: Vec<f64>,
+    queue: Vec<f64>,
+    index: usize,
 }
 
 impl MovingAverage {
-    pub fn new(size: usize, value: Option<f64>) -> MovingAverage {
-        let value = match value {
+    pub fn new(size: usize, initial_value: Option<f64>) -> MovingAverage {
+        let value = match initial_value {
             Some(v) => v,
             None => 0.0,
         };
 
         MovingAverage {
-            data: vec![value; size],
+            queue: vec![value; size],
+            index: 0,
         }
     }
 
     pub fn add(&mut self, value: f64) -> f64 {
-        self.data.pop();
-        self.data.insert(0, value);
+        self.queue[self.index] = value;
+        self.index = (self.index + 1) % self.queue.len();
 
-        self.get()
+        self.get_avg()
     }
 
-    pub fn get(&self) -> f64 {
-        self.data.iter().fold(0., |sum, n| sum + n) / (self.data.len() as f64)
+    pub fn get_avg(&self) -> f64 {
+        self.queue.iter().fold(0., |sum, n| sum + n) / (self.queue.len() as f64)
     }
 }

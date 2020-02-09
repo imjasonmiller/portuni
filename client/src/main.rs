@@ -27,6 +27,7 @@ use amethyst::{
     assets::{AssetPrefab, PrefabData, PrefabLoaderSystemDesc, ProgressCounter},
     core::transform::Transform,
     derive::PrefabData,
+    ecs::prelude::{Component, DenseVecStorage},
     ecs::Entity,
     gltf::{GltfSceneAsset, GltfSceneFormat, GltfSceneLoaderSystemDesc},
     utils::tag::Tag,
@@ -37,6 +38,10 @@ use serde::{self, Deserialize, Serialize};
 // The tag
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DroneMarker;
+
+impl Component for DroneMarker {
+    type Storage = DenseVecStorage<Self>;
+}
 
 #[derive(Default, Deserialize, Serialize, PrefabData)]
 #[serde(default)]
