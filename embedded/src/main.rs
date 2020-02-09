@@ -126,21 +126,9 @@ fn nrf24_tx() -> ! {
         .pb0
         .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
 
-    // SPI2
-    // SPI2_NSS: PB12
-    // SPI2_SCK: PB13
-    // SPI2_MISO: PB14
-    // SPI2_MOSI: PB15
-    // SPI2_SCK: PF9 / PF10
-    // SPI2_NSS (SS): PD15
-
-    // FIXME: Use a different pin due to the gyroscope
     let radio_sck = gpiob.pb13.into_af5(&mut gpiob.moder, &mut gpiob.afrh);
     let radio_miso = gpiob.pb14.into_af5(&mut gpiob.moder, &mut gpiob.afrh);
     let radio_mosi = gpiob.pb15.into_af5(&mut gpiob.moder, &mut gpiob.afrh);
-    // let radio_sck = gpioa.pa5.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
-    // let radio_miso = gpioa.pa6.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
-    // let radio_mosi = gpioa.pa7.into_af5(&mut gpioa.moder, &mut gpioa.afrl);
 
     let radio_spi = f3::hal::spi::Spi::spi2(
         dp.SPI2,
@@ -204,10 +192,8 @@ fn nrf24_tx() -> ! {
         if let Ok(()) = timer.wait() {
             if is_tx_blinking {
                 led_w.set_high();
-            // leds[Direction::West].on()
             } else {
                 led_w.set_low();
-                // leds[Direction::West].off()
             }
 
             is_tx_blinking = !is_tx_blinking;
@@ -249,7 +235,6 @@ fn nrf24_tx() -> ! {
 
             radio.send(&output).unwrap();
         } else {
-            // leds[Direction::North].on();
             iprintln!(stim, "Cant' send: {}", radio.is_full().unwrap());
 
             radio.wait_empty().unwrap();
