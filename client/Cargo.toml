@@ -10,6 +10,7 @@ rusb = "0.5.5"
 serde = { version = "1.0", features = ["derive"] }
 postcard  = { version = "0.4" }
 amethyst = { git = "https://github.com/amethyst/amethyst", rev = "37df46b", features = ["gltf", "animation"] }
+approx = { version = "0.3" }
 
 [features]
 default = ["vulkan"]
