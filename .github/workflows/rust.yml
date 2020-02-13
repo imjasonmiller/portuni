@@ -33,7 +33,6 @@ jobs:
             output: client-x86_64-apple-darwin
             artifact_prefix: portuni-client
 
-
     steps:
 
     - uses: actions/checkout@v2
@@ -87,7 +86,7 @@ jobs:
         mkdir ${{ matrix.output }}
         cp -r client/assets ${{ matrix.output }}/
         cp -r client/config ${{ matrix.output }}/
-        cp -p client/target/release/${{ matrix.artifact_prefix }} ${{ matrix.output }}/
+        cp -p target/release/${{ matrix.artifact_prefix }} ${{ matrix.output }}/
 
     - name: Pack artifact for Windows
       if: matrix.os == 'windows-latest'
@@ -95,7 +94,7 @@ jobs:
         mkdir ${{ matrix.output }}
         xcopy client\assets ${{ matrix.output }}\ /E /K /Y
         xcopy client\config ${{ matrix.output }}\ /E /K /Y
-        xcopy client\target\release\${{ matrix.artifact_prefix }} ${{ matrix.output }}\
+        xcopy target\release\${{ matrix.artifact_prefix }} ${{ matrix.output }}\
          
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
